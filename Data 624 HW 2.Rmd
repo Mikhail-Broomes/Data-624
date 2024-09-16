@@ -1,0 +1,395 @@
+---
+title: "Data 624 HW 2"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+date: "2024-09-12"
+---
+
+
+
+
+Do exercises 3.1, 3.2, 3.3, 3.4, 3.5, 3.7, 3.8 and 3.9 from the online Hyndman book.  Please include your Rpubs link along with.pdf file of your run code
+
+```{r setup, include=FALSE}
+library(fpp3)
+library(tidyverse)
+library(ggpubr)
+library()
+```
+
+## 3.1 
+
+Consider the GDP information in global_economy. Plot the GDP per capita for each country over time. Which country has the highest GDP per capita? How has this changed over time?
+
+```{r}
+global_economy 
+```
+
+```{r}
+global_economy <- global_economy %>%
+  mutate(GDP_per_capita = GDP / Population)
+global_economy <- as_tsibble(global_economy, key = Country, index = Year)
+```
+
+
+```{r cars}
+global_economy %>%
+  autoplot(GDP_per_capita)+
+  theme(legend.position = "none")
+```
+```{r}
+global_economy %>%
+  select(Country, Year, GDP_per_capita) %>%
+  slice_max(GDP_per_capita)
+```
+The country with the highest GDP per capita is Monaco. 
+
+```{r}
+global_economy %>%
+  filter(Country == "Monaco") %>%
+  autoplot(.vars = GDP_per_capita) +
+  labs(title = "Monaco GDP per Capita")
+```
+
+
+## 3.2
+
+For each of the following series, make a graph of the data. If transforming seems appropriate, do so and describe the effect.
+
+#United States GDP from global_economy.
+
+```{r}
+global_economy %>%
+  filter(Country == "United States") %>%
+  autoplot(.vars = GDP) +
+  labs(title = "United States GDP")
+
+```
+Transforming the data didn't seem appropriate because this only showed an upward trend.
+
+# Slaughter of Victorian “Bulls, bullocks and steers” in aus_livestock.
+```{r}
+aus_livestock
+
+```
+
+
+```{r}
+aus_livestock %>%
+  filter(Animal == "Bulls, bullocks and steers",
+         State == "Victoria") %>%
+  autoplot(.vars = Count) +
+  labs(title = "Slaughter of Victorian Bulls, bullocks and steers") 
+
+```
+I didn't use a transformation because there seems to be a downward trend.
+
+
+# Victorian Electricity Demand from vic_elec.
+
+```{r}
+vic_elec
+
+```
+
+
+```{r}
+vic_elec %>%
+  autoplot(.vars = Demand) +
+  labs(title = "Victorian Electricity Demand")
+
+```
+
+```{r}
+lambda <- vic_elec %>%
+  features(Demand, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+vic_elec %>% 
+  autoplot(box_cox(Demand, lambda)) +
+  labs(y = "",
+       title = latex2exp::TeX(paste0(
+         "Transformed electricity demand with $\\lambda$ = ",
+         round(lambda,2))))
+
+```
+
+Transforming the data doesn't seem to have affected the series much as it still shows somewhat of a seasonal pattern.
+
+
+
+# Gas production from aus_production.
+
+```{r}
+aus_production %>%
+  autoplot(.vars = Gas) +
+  labs(title = "Gas production")
+
+```
+
+```{r}
+lambda <- aus_production %>%
+  features(Gas, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+aus_production %>%
+  autoplot(box_cox(Gas, lambda)) +
+  labs(y = "",
+       title = latex2exp::TeX(paste0(
+         "Transformed gas production with $\\lambda$ = ",
+         round(lambda,2))))
+```
+The box-cox transformation was helpful in stabilizing the variance of the data for gas production to a degree especially at the beginning of the series.
+
+
+## 3.3 
+
+Why is a Box-Cox transformation unhelpful for the canadian_gas data?
+
+
+
+```{r}
+plot1 <- canadian_gas %>%
+  autoplot(.vars = Volume) +
+  labs(title = "Non-Transformed")
+
+lambda <- canadian_gas %>%
+  features(Volume, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+plot2 <- canadian_gas %>%
+  autoplot(box_cox(Volume, lambda)) +
+  labs(y = "",
+       title = latex2exp::TeX(paste0(
+         "Transformed with $\\lambda$ = ",
+         round(lambda,2)))) 
+
+ggarrange(plot1, plot2,
+          nrow = 1, ncol = 2)
+```
+
+
+## 3.4 
+
+What Box-Cox transformation would you select for your retail data (from Exercise 7 in Section 2.10
+
+```{r}
+aus_retail
+
+```
+
+
+```{r}
+set.seed(12345678)
+myseries <- aus_retail %>% 
+  filter(`Series ID` == sample(aus_retail$`Series ID`,1)) 
+
+myseries %>% 
+autoplot(.vars = Turnover) +
+  labs(title = "Retail Turnover")
+```
+
+```{r}
+lambda <- myseries %>%
+  features(Turnover, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+plot3 <- myseries %>%
+  autoplot(.vars = Turnover) +
+  labs(title = "Non-Transformed")
+
+plot4 <- myseries %>% 
+  autoplot(box_cox(Turnover, lambda)) +
+  labs(y = "",
+       title = latex2exp::TeX(paste0(
+         "Transformed with $\\lambda$ = ",
+         round(lambda,2))))
+
+ggarrange(plot3, plot4,
+          nrow = 1, ncol = 2)
+```
+
+
+## 3.5 
+
+For the following series, find an appropriate Box-Cox transformation in order to stabilise the variance. 
+
+Tobacco from aus_production, 
+
+```{r}
+p1 <- aus_production %>%
+  autoplot(.vars = Tobacco) +
+  labs(title = "Non-Transformed")
+
+lambda <- aus_production %>%
+  features(Tobacco, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+p2 <- aus_production %>%
+  autoplot(box_cox(Tobacco, lambda)) +
+  labs(y = "",
+       title = latex2exp::TeX(paste0(
+         "Transformed with $\\lambda$ = ",
+         round(lambda,2)))) 
+
+ggarrange(p1, p2,
+          nrow = 1, ncol = 2)
+```
+
+
+
+Economy class passengers between Melbourne and Sydney from ansett, and 
+
+```{r}
+p1 <- ansett %>%
+  filter(Class == "Economy",
+         Airports == "MEL-SYD") %>%
+  autoplot(.vars = Passengers) +
+  labs(title = "Non-Transformed")
+
+lambda <- ansett %>%
+  filter(Class == "Economy",
+         Airports == "MEL-SYD") %>%
+  features(Passengers, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+p2 <- ansett %>%
+  filter(Class == "Economy",
+         Airports == "MEL-SYD") %>%
+  autoplot(box_cox(Passengers, lambda)) +
+  labs(y = "",
+       title = latex2exp::TeX(paste0(
+         "Transformed with $\\lambda$ = ",
+         round(lambda,2)))) 
+
+ggarrange(p1, p2,
+          nrow = 1, ncol = 2)
+```
+
+
+Pedestrian counts at Southern Cross Station from pedestrian.
+
+```{r}
+p1 <- pedestrian %>%
+  filter(Sensor=='Southern Cross Station') %>%
+  autoplot(.vars = Count) +
+  labs(title = "Non-Transformed")
+
+lambda <- pedestrian %>%
+  filter(Sensor=='Southern Cross Station') %>%
+  features(Count, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+p2 <- pedestrian %>% 
+  filter(Sensor=='Southern Cross Station') %>%
+  autoplot(box_cox(Count, lambda)) +
+  labs(y = "",
+       title = latex2exp::TeX(paste0(
+         "Transformed with $\\lambda$ = ",
+         round(lambda,2)))) 
+
+ggarrange(p1, p2,
+          nrow = 1, ncol = 2)
+```
+
+## 3.7 
+
+Consider the last five years of the Gas data from aus_production.
+
+gas <- tail(aus_production, 5*4) |> select(Gas)
+
+a) Plot the time series. Can you identify seasonal fluctuations and/or a trend-cycle?
+
+```{r}
+gas <- tail(aus_production, 5*4) %>% select(Gas)
+autoplot(gas, .vars = Gas)
+```
+There seems to be a seasonal pattern in the data for each quarter, with a slight upward trend.
+
+b) Use classical_decomposition with type=multiplicative to calculate the trend-cycle and seasonal indices.
+
+```{r}
+gas %>%
+  model(classical_decomposition(Gas, type = "multiplicative")) %>%
+  components() %>%
+  autoplot()
+
+```
+
+c) Do the results support the graphical interpretation from part a?
+
+Yes it does support the graphical interpretation from part a as there is seasonality and a positive upqward trend.
+
+d) Compute and plot the seasonally adjusted data.
+
+```{r}
+gas %>%
+  model(classical_decomposition(Gas, type = "multiplicative")) %>%
+  components() %>%
+  mutate(seasonally_adjusted = Gas / seasonal) %>%
+  autoplot(.vars = seasonally_adjusted)
+
+```
+
+
+e) Change one observation to be an outlier (e.g., add 300 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
+
+```{r}
+gas_outlier <- gas %>%
+  mutate(Gas = replace(Gas, 5, Gas[5] + 300))
+
+gas_outlier %>%
+  autoplot(.vars = Gas)
+```
+
+
+f) Does it make any difference if the outlier is near the end rather than in the middle of the time series?
+
+It does make a difference if the outlier is near the end rather than in the middle of the time series. The effect of the outlier is more pronounced when it is near the ends of the time series.
+
+
+
+## 3.8 
+
+Recall your retail time series data (from Exercise 7 in Section 2.10). Decompose the series using X-11. Does it reveal any outliers, or unusual features that you had not noticed previously?
+
+```{r}
+set.seed(12345678)
+myseries <- aus_retail |>
+  filter(`Series ID` == sample(aus_retail$`Series ID`,1))
+
+
+```
+
+```{r}
+x11_dcmp <- myseries %>%
+  model(x11 = X_13ARIMA_SEATS(Turnover ~ x11())) %>%
+  components()
+autoplot(x11_dcmp) +
+  labs(title = "X-11 Decomposition")
+
+```
+There seems to be a an outlier a little prior to the early 2000s looking at the trend component of the decomposition. 
+
+
+## 3.9 
+
+Figures 3.19 and 3.20 show the result of decomposing the number of persons in the civilian labour force in Australia each month from February 1978 to August 1995.
+
+Decomposition of the number of persons in the civilian labour force in Australia each month from February 1978 to August 1995.
+Figure 3.19: Decomposition of the number of persons in the civilian labour force in Australia each month from February 1978 to August 1995.
+
+Seasonal component from the decomposition shown in the previous figure.
+Figure 3.20: Seasonal component from the decomposition shown in the previous figure.
+
+# Write about 3–5 sentences describing the results of the decomposition. Pay particular attention to the scales of the graphs in making your interpretation.
+
+The civilian labor force in Australia shows a steady increase throughout the time series. The seasonality remains relatively consistent, although the variability seems to have increased in the later years of the data. There are significant outliers in the remainder portion of the STL decomposition, particularly in the early 1990s, which might be linked to the recession Australia experienced in 1991. The seasonal plot also indicates a major recession around this time, as most months show a noticeable drop around 1990.
+
+
+# Is the recession of 1991/1992 visible in the estimated components?
+
+Yes, the recession of 1991/1992 can be seen in the irregular component due to the presence of outliers during that period.
